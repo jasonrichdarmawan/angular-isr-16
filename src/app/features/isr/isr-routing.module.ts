@@ -6,7 +6,7 @@ const routes: Routes = [
     path: 'uuidv4',
     loadComponent: () => import("./pages/uuidv4/uuidv4.component").then(c => c.Uuidv4Component),
     data: {
-      revalidate: 100,
+      revalidate: 5, // 5 seconds
     },
   }
 ];
