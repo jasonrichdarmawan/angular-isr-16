@@ -1,4 +1,5 @@
-import { Component } from '@angular/core';
+import { isPlatformServer } from '@angular/common';
+import { Component, Inject, PLATFORM_ID } from '@angular/core';
 
 @Component({
   selector: 'app-root',
@@ -8,7 +9,11 @@ import { Component } from '@angular/core';
 export class AppComponent {
   readonly timeZone: string;
 
-  constructor() {
-    this.timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  constructor(
+    @Inject(PLATFORM_ID) platformID: Object,
+  ) {
+    let isServer = isPlatformServer(platformID);
+
+    this.timeZone = isServer ? "server" : Intl.DateTimeFormat().resolvedOptions().timeZone;
   }
 }
