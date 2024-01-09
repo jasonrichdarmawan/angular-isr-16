@@ -6,5 +6,9 @@ import { Component } from '@angular/core';
   styleUrls: ['./app.component.scss']
 })
 export class AppComponent {
-  title = 'angular-isr-16';
+  readonly timeZone: string;
+
+  constructor() {
+    this.timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  }
 }
