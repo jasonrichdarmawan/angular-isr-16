@@ -6,12 +6,20 @@ import * as express from 'express';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { AppServerModule } from './src/main.server';
+import { ISRHandler } from '@rx-angular/isr';
+import { environment } from 'src/environments/environment';
 
 // The Express app is exported so that it can be used by serverless Functions.
 export function app(): express.Express {
   const server = express();
   const distFolder = join(process.cwd(), 'dist/angular-isr-16/browser');
   const indexHtml = existsSync(join(distFolder, 'index.original.html')) ? 'index.original.html' : 'index';
+
+  const isr = new ISRHandler({
+    indexHtml,
+    invalidateSecretToken: 'MY_TOKEN', // replace with env secret key ex. process.env.REVALIDATE_SECRET_TOKEN
+    enableLogging: !environment.production,
+  });
 
   // Our Universal express-engine (found @ https://github.com/angular/universal/tree/main/modules/express-engine)
   server.engine('html', ngExpressEngine({
@@ -29,9 +37,24 @@ export function app(): express.Express {
   }));
 
   // All regular routes use the Universal engine
-  server.get('*', (req, res) => {
-    res.render(indexHtml, { req, providers: [{ provide: APP_BASE_HREF, useValue: req.baseUrl }] });
-  });
+  server.get(
+    '*',
+    // Serve page if it exists in cache
+    async (req, res, next) => await isr.serveFromCache(req, res, next),
+    // Server side render the page and add to cache if needed
+    async (req, res, next) => await isr.render(req, res, next, {
+      providers: [
+        { provide: APP_BASE_HREF, useValue: req.baseUrl },
+      ],
+    }),
+  );
+
+  // invaldiation url handler
+  server.use(express.json());
+  server.post(
+    '/api/invalidate',
+    async (req, res) => await isr.invalidate(req, res)
+  );
 
   return server;
 }
